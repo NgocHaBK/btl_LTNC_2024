@@ -64,7 +64,7 @@ const Patient = () => {
                 <form onSubmit={handleSubmit}>
                     <div className={`form first`}>
                         <div className={`${style.detail} personal`}>
-                            <span className={style.title}>Information About The Doctor</span>
+                            <span className={style.title}>Information About Your Health Record</span>
                             <div className={style.fields}>
                                 <div className={style[`input-field`]}>
                                     <label htmlFor="">Past Medical Conditions<span>*</span></label>

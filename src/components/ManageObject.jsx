@@ -6,22 +6,15 @@ import {
     setDoc,
     doc,
     deleteDoc,
-    updateDoc,
     getDoc,
 } from "firebase/firestore";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
 import Patient_css from "./../css/patient.module.css";
-import Base_css from "./../css/base.module.css";
-import HCMUT_LOGO from "./../img/HCMUT_official_logo.png";
-import Admin_css from "./../css/admin.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPhone } from "@fortawesome/free-solid-svg-icons";
-import { faLocation } from "@fortawesome/free-solid-svg-icons";
-import { faCalendar } from "@fortawesome/free-regular-svg-icons";
-import HeaderPage from "./header.jsx";
-
-import 'bootstrap/dist/css/bootstrap.min.css';
+import { faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faEdit } from "@fortawesome/free-solid-svg-icons";
+import HeaderPage from "./header";
 
 const MedicalEquipmentManager = () => {
     const [equipments, setEquipments] = useState([]);
@@ -29,6 +22,7 @@ const MedicalEquipmentManager = () => {
     const [newEquipment, setNewEquipment] = useState({
         id: "",
         name: "",
+
         maintenanceHistory: "",
         availability: "available",
         borrowerId: "",
@@ -98,32 +92,12 @@ const MedicalEquipmentManager = () => {
 
             if (equipmentDoc.exists()) {
                 setIdExists(true);
-                return;
             }
 
             await setDoc(equipmentRef, {
                 ...newEquipment,
                 name: equipmentName,
             });
-
-            if (newEquipment.borrowerId) {
-                const patientRef = doc(db, "info", newEquipment.borrowerId);
-                const patientDoc = await getDoc(patientRef);
-
-                if (patientDoc.exists()) {
-                    const patientData = patientDoc.data();
-                    const updatedEquipments = patientData.equipments || [];
-                    updatedEquipments.push({
-                        equipmentId: newEquipment.id,
-                        name: equipmentName,
-                        maintenanceHistory: newEquipment.maintenanceHistory,
-                    });
-
-                    await updateDoc(patientRef, {
-                        equipments: updatedEquipments,
-                    });
-                }
-            }
 
             setNewEquipment({
                 id: "",
@@ -149,7 +123,6 @@ const MedicalEquipmentManager = () => {
             console.error("Error adding equipment: ", error);
         }
     };
-
     const [modal1Show, setModal1Show] = useState(false);
     const [modal2Show, setModal2Show] = useState(false);
 
@@ -177,38 +150,6 @@ const MedicalEquipmentManager = () => {
                 ...updatedEquipment,
                 name: equipmentName,
             });
-
-            if (updatedEquipment.borrowerId) {
-                const patientRef = doc(db, "info", updatedEquipment.borrowerId);
-                const patientDoc = await getDoc(patientRef);
-
-                if (patientDoc.exists()) {
-                    const patientData = patientDoc.data();
-                    const updatedEquipments = patientData.equipments || [];
-                    const existingEquipmentIndex = updatedEquipments.findIndex(
-                        (equipment) => equipment.equipmentId === id
-                    );
-
-                    if (existingEquipmentIndex !== -1) {
-                        updatedEquipments[existingEquipmentIndex] = {
-                            equipmentId: id,
-                            name: equipmentName,
-                            maintenanceHistory: updatedEquipment.maintenanceHistory,
-                        };
-                    } else {
-                        updatedEquipments.push({
-                            equipmentId: id,
-                            name: equipmentName,
-                            maintenanceHistory: updatedEquipment.maintenanceHistory,
-                        });
-                    }
-
-                    await updateDoc(patientRef, {
-                        equipments: updatedEquipments,
-                    });
-                }
-            }
-
             const equipmentCollection = collection(db, "equipments");
             const equipmentSnapshot = await getDocs(equipmentCollection);
             const equipmentList = equipmentSnapshot.docs.map((doc) => ({
@@ -240,26 +181,6 @@ const MedicalEquipmentManager = () => {
                 ...new Set(equipmentList.map((equipment) => equipment.name)),
             ];
             setUniqueEquipmentNames(uniqueNames);
-
-            // Remove equipment from patient records
-            const patientsCollection = collection(db, "info");
-            const patientsSnapshot = await getDocs(patientsCollection);
-            const patientsList = patientsSnapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-
-            for (const patient of patientsList) {
-                const patientRef = doc(db, "info", patient.id);
-                const patientEquipments = patient.equipments || [];
-                const updatedEquipments = patientEquipments.filter(
-                    (equipment) => equipment.equipmentId !== id
-                );
-
-                await updateDoc(patientRef, {
-                    equipments: updatedEquipments,
-                });
-            }
         } catch (error) {
             console.error("Error deleting equipment: ", error);
         }
@@ -274,14 +195,6 @@ const MedicalEquipmentManager = () => {
                     <div style={{ color: "red" }}>UNVALID: ID already exists</div>
                 )}
                 <div className="container">
-                    <Button
-                        variant="primary"
-                        onClick={handleOpenModal1}
-                        className="btn btn-success"
-                    >
-                        + Add New Equipment
-                    </Button>
-
                     <Modal show={modal1Show} onHide={handleCloseModal1} id="form_add">
                         <Modal.Header closeButton>
                             <Modal.Title>Equipment Adding</Modal.Title>
@@ -364,8 +277,14 @@ const MedicalEquipmentManager = () => {
                     </Modal>
                 </div>
                 <div className="container mb-5">
-                    <h3>Equipment List</h3>
-
+                    <h3 className="mb-2">Equipment List</h3>
+                    <Button
+                        variant="primary"
+                        onClick={handleOpenModal1}
+                        className="btn btn-success"
+                    >
+                        + Add New Equipment
+                    </Button>
                     <div className={Patient_css.patient_list_content}>
                         <table className={`table ${Patient_css.table}`}>
                             <thead>
@@ -389,18 +308,19 @@ const MedicalEquipmentManager = () => {
                                         <td>{equipment.availability}</td>
                                         <td id={Patient_css.trash_bin}>
                                             <a href="#">
-                                                <i
+                                                <FontAwesomeIcon
+                                                    icon={faEdit}
                                                     onClick={() => handleEditEquipment(equipment)}
-                                                    className="fa-sharp fa-solid fa-sync"
-                                                ></i>
+                                                    className="text-success"
+                                                />
                                             </a>
                                         </td>
                                         <td id={Patient_css.trash_bin}>
                                             <a href="#">
-                                                <i
+                                                <FontAwesomeIcon
+                                                    icon={faTrash}
                                                     onClick={() => handleDeleteEquipment(equipment.id)}
-                                                    className="fa-sharp fa-solid fa-trash"
-                                                ></i>
+                                                />
                                             </a>
                                         </td>
                                     </tr>
@@ -505,7 +425,7 @@ const MedicalEquipmentManager = () => {
                         </Modal>
                     </div>
                 )}
-            </div>
+            </div>{" "}
         </>
     );
 };

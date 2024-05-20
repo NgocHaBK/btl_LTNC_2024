@@ -62,7 +62,7 @@ const VerifyEmployee = () => {
     };
 
     return (
-        <div className={style.doctorform}>
+        <body className={style.doctorform}>
             <div className={`${style.container} ${style.doctorform}`}>
                 <header className={style.doctorform}>VERIFY</header>
 
@@ -93,7 +93,7 @@ const VerifyEmployee = () => {
                     </div>
                 </form>
             </div>
-        </div>
+        </body>
     );
 };
 
